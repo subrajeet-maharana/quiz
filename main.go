@@ -8,6 +8,11 @@ import (
 	"os"
 )
 
+type questionAnswer struct {
+	question string
+	answer   string
+}
+
 func main() {
 	//opening file in golang
 	strPtr := flag.String("filename", "problems.csv", "CSV File Name")
