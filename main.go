@@ -1,21 +1,24 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"reflect"
+
+	"github.com/gocarina/gocsv"
 )
 
-type questionAnswer struct {
+type QuestionAnswer struct {
 	question string
 	answer   string
 }
 
 func main() {
 	strPtr := flag.String("filename", "problems.csv", "CSV File Name")
-	// intPtr := flag.Int("time", 30, "Time Limit")
 	flag.Parse()
 	var commandIs string
 	if *strPtr != "problems.csv" {
@@ -31,12 +34,27 @@ func main() {
 	data, err := csvReader.ReadAll()
 	checkNilErr(err)
 
+	var questions []QuestionAnswer
+
+	for _, d := range data[1:] {
+		var q QuestionAnswer
+		populateStructFromCSV(d, &q)
+		questions = append(questions, q)
+	}
+
+	questionAnswers := []*QuestionAnswer{}
+	if err := gocsv.UnmarshalFile(f, &questionAnswers); err != nil {
+		panic(err)
+	}
 	var score int = 0
-	for i, row := range data {
-		fmt.Printf("%d. %s = ", i+1, row[0])
-		var val string
-		fmt.Scan(&val)
-		if val == row[1] {
+	for i, q := range questionAnswers {
+		fmt.Printf("%d. %s ", i+1, q.question)
+		reader := bufio.NewReader(os.Stdin)
+		val, err := reader.ReadString('\n')
+		checkNilErr(err)
+		val = val[:len(val)-1]
+		fmt.Printf("%s %s\n", val, q.answer)
+		if val == q.answer {
 			score++
 		}
 	}
@@ -46,5 +64,15 @@ func main() {
 func checkNilErr(err error) {
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func populateStructFromCSV(data []string, result interface{}) {
+	val := reflect.ValueOf(result).Elem()
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		if field.CanSet() {
+			field.SetString(data[i])
+		}
 	}
 }
